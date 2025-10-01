@@ -1,0 +1,186 @@
+<!-- papers.html -->
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>论文管理</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/jquery@3.6.4/dist/jquery.min.js"></script>
+</head>
+<body>
+    <div class="container mt-4">
+        <h1>论文管理</h1>
+        <div class="row">
+            <div class="col-md-6">
+                <h2>添加论文</h2>
+                <form id="paperForm">
+                    <div class="mb-3">
+                        <label for="title" class="form-label">论文标题</label>
+                        <input type="text" class="form-control" id="title" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="publishYear" class="form-label">发表年份</label>
+                        <input type="number" class="form-control" id="publishYear" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="level" class="form-label">论文级别</label>
+                        <select class="form-control" id="level" required>
+                            <option value="1">CCF-A</option>
+                            <option value="2">CCF-B</option>
+                            <option value="3">CCF-C</option>
+                            <option value="4">中文CCF-A</option>
+                            <option value="5">中文CCF-B</option>
+                            <option value="6">无级别</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="source" class="form-label">发表源</label>
+                        <input type="text" class="form-control" id="source">
+                    </div>
+                    <div class="mb-3">
+                        <label for="type" class="form-label">论文类型</label>
+                        <select class="form-control" id="type" required>
+                            <option value="1">full paper</option>
+                            <option value="2">short paper</option>
+                            <option value="3">poster paper</option>
+                            <option value="4">demo paper</option>
+                        </select>
+                    </div>
+                    
+                    <h3>作者信息</h3>
+                    <div id="authorsContainer">
+                        <div class="author-row mb-2">
+                            <div class="row">
+                                <div class="col-md-3">
+                                    <input type="text" class="form-control" placeholder="教师工号" class="teacherId">
+                                </div>
+                                <div class="col-md-2">
+                                    <input type="number" class="form-control" placeholder="排名" class="rank">
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-check-label">
+                                        <input type="checkbox" class="form-check-input corresponding"> 通讯作者
+                                    </label>
+                                </div>
+                                <div class="col-md-4">
+                                    <button type="button" class="btn btn-danger remove-author">删除</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <button type="button" class="btn btn-primary add-author mb-3">添加作者</button>
+                    
+                    <button type="submit" class="btn btn-success">提交</button>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        $(document).ready(function() {
+            // 添加作者行
+            $(".add-author").click(function() {
+                const authorRow = `
+                <div class="author-row mb-2">
+                    <div class="row">
+                        <div class="col-md-3">
+                            <input type="text" class="form-control" placeholder="教师工号" class="teacherId">
+                        </div>
+                        <div class="col-md-2">
+                            <input type="number" class="form-control" placeholder="排名" class="rank">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-check-label">
+                                <input type="checkbox" class="form-check-input corresponding"> 通讯作者
+                            </label>
+                        </div>
+                        <div class="col-md-4">
+                            <button type="button" class="btn btn-danger remove-author">删除</button>
+                        </div>
+                    </div>
+                </div>
+                `;
+                $("#authorsContainer").append(authorRow);
+            });
+            
+            // 删除作者行
+            $(document).on("click", ".remove-author", function() {
+                $(this).closest(".author-row").remove();
+            });
+            
+            // 提交表单
+            $("#paperForm").submit(function(e) {
+                e.preventDefault();
+                
+                // 收集表单数据
+                const paperData = {
+                    title: $("#title").val(),
+                    publish_year: parseInt($("#publishYear").val()),
+                    level: parseInt($("#level").val()),
+                    source: $("#source").val(),
+                    type: parseInt($("#type").val()),
+                    authors: []
+                };
+                
+                // 收集作者数据
+                $(".author-row").each(function() {
+                    const teacherId = $(this).find(".teacherId").val();
+                    const rank = parseInt($(this).find(".rank").val());
+                    const isCorresponding = $(this).find(".corresponding").is(":checked");
+                    
+                    if (teacherId && rank) {
+                        paperData.authors.push({
+                            teacher_id: teacherId,
+                            rank: rank,
+                            is_corresponding: isCorresponding
+                        });
+                    }
+                });
+                
+                // 验证作者数量
+                if (paperData.authors.length === 0) {
+                    alert("至少添加一位作者");
+                    return;
+                }
+                
+                // 发送API请求
+                $.ajax({
+                    url: "/api/papers",
+                    method: "POST",
+                    contentType: "application/json",
+                    data: JSON.stringify(paperData),
+                    success: function(response) {
+                        alert("论文添加成功");
+                        $("#paperForm")[0].reset();
+                        $("#authorsContainer").html(`
+                            <div class="author-row mb-2">
+                                <div class="row">
+                                    <div class="col-md-3">
+                                        <input type="text" class="form-control" placeholder="教师工号" class="teacherId">
+                                    </div>
+                                    <div class="col-md-2">
+                                        <input type="number" class="form-control" placeholder="排名" class="rank">
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label class="form-check-label">
+                                            <input type="checkbox" class="form-check-input corresponding"> 通讯作者
+                                        </label>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <button type="button" class="btn btn-danger remove-author">删除</button>
+                                    </div>
+                                </div>
+                            </div>
+                        `);
+                    },
+                    error: function(xhr, status, error) {
+                        const response = xhr.responseJSON;
+                        alert(response.error || "添加失败，请重试");
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>
